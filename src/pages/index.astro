@@ -1,0 +1,50 @@
+---
+const entryTypes = [
+  ['symbol', '✦', 'Símbolo'],
+  ['dream', '☾', 'Sonho'],
+  ['number', '#', 'Número'],
+  ['animal', '♧', 'Animal'],
+  ['color', '◉', 'Cor'],
+  ['word', 'Aa', 'Palavra'],
+];
+---
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#110f21" />
+    <meta name="description" content="Um espaço simples e bonito para guardar sonhos, símbolos e sinais." />
+    <title>Diário do Universo</title>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar"><span class="brand">✦ Diário do Universo</span><span class="link-note">um app independente</span></header>
+      <section class="hero"><div class="orbit">✦</div><p class="eyebrow">um espaço para guardar</p><h1>O que chamou sua atenção hoje?</h1><p>Um sonho, um símbolo, um número ou uma palavra. Guarde os pequenos sinais e deixe seu universo ganhar forma.</p></section>
+      <section class="card composer"><span class="label">Novo registro</span><div class="types">{entryTypes.map(([type, icon, label], index) => <button class:list-active={index === 0} class="type" data-entry-type={type} type="button">{icon}<small>{label}</small></button>)}</div><input id="title" maxlength="160" placeholder="Dê um nome para este registro" aria-label="Nome do registro" /><textarea id="body" maxlength="20000" placeholder="O que aconteceu? O que você viu ou encontrou?" aria-label="Conteúdo do registro"></textarea><div class="compose-foot"><span id="type-label">Símbolo</span><button id="save" type="button" disabled>Guardar registro →</button></div><p id="notice" role="status"></p></section>
+      <section class="collection"><div class="collection-head"><div><span class="label">sua coleção</span><h2>Pequenos sinais guardados</h2></div><strong><span id="count">0</span> ✦</strong></div><div id="symbols" class="symbols"></div><div id="entries" class="entries"><div class="empty">✦<p>Seu primeiro registro ainda está esperando para ser guardado.</p></div></div></section>
+      <aside class="bridge"><b>↗</b><p><strong>Um ecossistema, dois caminhos.</strong><br />Leituras e mapas do Palavras do Universo poderão ser guardados aqui com a origem preservada.</p></aside>
+    </main>
+    <script>
+      const key = 'diario_do_universo_entries';
+      const labels = { symbol: 'Símbolo', dream: 'Sonho', number: 'Número', animal: 'Animal', color: 'Cor', word: 'Palavra' };
+      let entries = [];
+      let selectedType = 'symbol';
+      const title = document.querySelector('#title');
+      const body = document.querySelector('#body');
+      const save = document.querySelector('#save');
+      const notice = document.querySelector('#notice');
+      function esc(value) { return String(value).replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[c]); }
+      function render() { document.querySelector('#count').textContent = entries.length; document.querySelector('#symbols').innerHTML = [...new Set(entries.flatMap((entry) => entry.symbols || []))].slice(0, 8).map((item) => `<span>${esc(item)}</span>`).join(''); document.querySelector('#entries').innerHTML = entries.length ? entries.map((entry) => `<article class="entry"><div><small>✦ ${esc(labels[entry.type] || 'Registro')}</small><h3>${esc(entry.title)}</h3></div><time>${new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'short' }).format(new Date(entry.createdAt))}</time><p>${esc(entry.body)}</p></article>`).join('') : '<div class="empty">✦<p>Seu primeiro registro ainda está esperando para ser guardado.</p></div>'; }
+      function update() { save.disabled = !title.value.trim() || !body.value.trim(); }
+      document.querySelectorAll('[data-entry-type]').forEach((button) => button.addEventListener('click', () => { selectedType = button.dataset.entryType; document.querySelectorAll('[data-entry-type]').forEach((item) => item.classList.toggle('active', item === button)); document.querySelector('#type-label').textContent = labels[selectedType]; }));
+      title.addEventListener('input', update); body.addEventListener('input', update);
+      save.addEventListener('click', () => { const entry = { type: selectedType, title: title.value.trim(), body: body.value.trim(), createdAt: new Date().toISOString(), symbols: [title.value.trim()] }; entries = [entry, ...entries].slice(0, 100); localStorage.setItem(key, JSON.stringify(entries)); title.value = ''; body.value = ''; notice.textContent = 'Guardado neste dispositivo.'; update(); render(); });
+      try { entries = JSON.parse(localStorage.getItem(key) || '[]'); } catch { entries = []; } render();
+    </script>
+  </body>
+</html>
+
+<style>
+  :root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#fafafa;background:#110f21}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 80% 0%,#4b3c8066,transparent 38%),radial-gradient(circle at 0 42%,#2f777322,transparent 32%),#110f21}.shell{max-width:760px;margin:auto;padding:22px 16px 72px}.topbar{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:.78rem}.brand{color:#f4d58d;font-weight:700}.link-note{color:#9e96aa}.hero{text-align:center;padding:68px 14px 36px}.orbit{display:grid;place-items:center;width:68px;height:68px;margin:auto;border:1px solid #8bd8c855;border-radius:50%;color:#f4d58d;font-size:1.5rem;box-shadow:0 0 50px #8bd8c81f}.eyebrow,.label{color:#8bd8c8;font-size:.7rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase}.hero h1{max-width:580px;margin:14px auto 0;font:600 clamp(2.3rem,8vw,4.5rem)/1.04 Georgia,serif;letter-spacing:-.04em}.hero p:last-child{max-width:460px;margin:18px auto 0;color:#cfc4d2;font-size:.96rem;line-height:1.7}.card{border:1px solid #ffffff14;border-radius:24px;background:#18181bd0;box-shadow:0 24px 80px #00000038}.composer{padding:20px}.types{display:flex;gap:6px;margin:16px -4px 20px;overflow:auto;padding:2px 4px 6px}.type{min-width:70px;padding:11px 8px;border:1px solid transparent;border-radius:15px;background:#09090b73;color:#a1a1aa;font-size:1.1rem}.type small{display:block;margin-top:5px;font-size:.68rem}.type:hover,.type.active,.type.list-active{border-color:#2dd4bf59;background:#2dd4bf1f;color:#2dd4bf}.composer input,.composer textarea{width:100%;border:1px solid #ffffff14;border-radius:14px;background:#09090b66;color:#fafafa;outline:0;padding:14px 15px}.composer textarea{min-height:120px;margin-top:10px;resize:vertical;line-height:1.6}.composer input:focus,.composer textarea:focus{border-color:#2dd4bf}.compose-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:13px;color:#a1a1aa;font-size:.75rem}.compose-foot button{padding:11px 16px;border-radius:999px;background:#f4d58d;color:#211a27;font-weight:800}.compose-foot button:disabled{opacity:.4}.composer #notice{min-height:18px;margin:10px 0 0;text-align:right;color:#2dd4bf;font-size:.75rem}.collection{padding:48px 4px 0}.collection-head{display:flex;justify-content:space-between;align-items:end}.collection h2{margin:7px 0 0;font:600 clamp(1.7rem,6vw,2.4rem)/1.08 Georgia,serif}.collection-head strong{color:#f4d58d}.symbols{display:flex;flex-wrap:wrap;gap:7px;margin-top:18px}.symbols span{padding:7px 11px;border:1px solid #2dd4bf38;border-radius:999px;background:#2dd4bf1f;color:#a7f3e8;font-size:.75rem}.entries{display:grid;gap:11px;margin-top:18px}.entry,.empty{padding:19px;border:1px solid #ffffff14;border-radius:22px;background:#18181ba6}.entry{display:grid;grid-template-columns:1fr auto;gap:0 14px}.entry small{color:#2dd4bf;font-size:.7rem}.entry h3{margin:7px 0 0;font-size:1.05rem}.entry time{color:#71717a;font-size:.72rem}.entry p{grid-column:1/-1;margin:11px 0 0;color:#cfc4d2;font-size:.88rem;line-height:1.65}.empty{text-align:center;color:#a1a1aa}.empty:first-letter{color:#f4d58d;font-size:1.5rem}.empty p{margin:8px 0 0;font-size:.85rem}.bridge{display:flex;gap:13px;margin:38px 4px 0;padding:17px;border:1px solid #3b82f638;border-radius:20px;background:#3b82f612;color:#d4d4d8}.bridge>b{color:#22d3ee;font-size:1.4rem}.bridge p{margin:0;font-size:.76rem;line-height:1.55}.bridge strong{color:#fafafa}@media(min-width:700px){.shell{padding-top:30px}.hero{padding-top:82px}.composer{padding:28px}}
+</style>
