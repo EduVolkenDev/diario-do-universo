@@ -24,4 +24,8 @@ O endereço público do site deve ser adicionado em Supabase Auth → URL Config
 
 A migração está em `supabase/migrations/20261020000100_create_diario_entries.sql`. Ela cria `public.entries`, índices, grants e políticas RLS que só permitem a cada usuário ler e alterar os próprios registros.
 
-Neste ambiente, o conector administrativo do Supabase recusou leitura e aplicação remota por falta de permissão. Por isso a migração foi versionada localmente, mas ainda precisa ser aplicada no SQL Editor ou via CLI autenticada do projeto antes do primeiro cadastro real.
+Em 27 de outubro de 2026, a migração de registros foi aplicada no projeto correto, `vgaqwpkqrjtyumsajjsz` (Volynx Universe Share). A migração `20261027043408_add_entry_reflections.sql` também foi aplicada: ela cria o histórico privado de evoluções, conclusões, aprendizados e reaberturas.
+
+As permissões foram verificadas no banco remoto com dados temporários em uma transação desfeita ao final: o dono consegue ler e inserir; outra conta não consegue acessar; as evoluções são preservadas como histórico e são removidas em cascata quando o registro original é apagado. Nenhum registro artificial permaneceu após o teste.
+
+Essa validação do banco não substitui um teste de login e salvamento pelo navegador publicado. Consulte `docs/PRODUCT_POLISH_AUDIT.md` para as verificações e pendências desta entrega.
