@@ -18,11 +18,16 @@ test('Postgres migrations: ownership, append-only history, validation and deleti
       grant execute on function auth.uid() to authenticated, anon;
       insert into auth.users values ('00000000-0000-4000-8000-000000000001'),('00000000-0000-4000-8000-000000000002');
     `);
-    for(const name of ['20261020000100_create_diario_entries.sql','20261027043408_add_entry_reflections.sql']) {
+    for(const name of ['20261020000100_create_diario_entries.sql','20261027043408_add_entry_reflections.sql','20261031034638_add_pdu_reading_source.sql']) {
       await db.exec(readFileSync(new URL(`../supabase/migrations/${name}`,import.meta.url),'utf8'));
     }
     await db.exec(`set role authenticated; set request.jwt.claim.sub='00000000-0000-4000-8000-000000000001';`);
     await db.query(`insert into public.entries(id,owner_user_id,entry_type,body) values ($1,$2,'dream','Fixture')`,['10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001']);
+    const source={app:'pdu',version:1,readingId:'reading-one',interpretation:'Fixture reading',cards:[{name:'A Estrela',position:'Caminho',reversed:false}]};
+    await db.query(`update public.entries set source=$1, source_key='pdu:reading-one' where id=$2`,[JSON.stringify(source),'10000000-0000-4000-8000-000000000001']);
+    await assert.rejects(db.query(`insert into public.entries(owner_user_id,entry_type,body,source,source_key) values($1,'symbol','Duplicate',$2,'pdu:reading-one')`,['00000000-0000-4000-8000-000000000001',JSON.stringify(source)]),/duplicate key/);
+    await assert.rejects(db.exec(`update public.entries set source_key='pdu:other'`),/check constraint/);
+    await assert.rejects(db.exec(`update public.entries set source='{}',source_key='pdu:invalid'`),/check constraint/);
     await db.query(`insert into public.entry_reflections(id,entry_id,kind,body) values ($1,$2,'learning','Fixture learning')`,['20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001']);
     assert.equal((await db.query('select * from public.entry_reflections')).rows.length,1);
     await assert.rejects(db.exec(`update public.entry_reflections set body='changed'`),/permission denied/);
@@ -34,6 +39,8 @@ test('Postgres migrations: ownership, append-only history, validation and deleti
     await db.exec(`set request.jwt.claim.sub='00000000-0000-4000-8000-000000000002'`);
     assert.equal((await db.query('select * from public.entries')).rows.length,0);
     assert.equal((await db.query('select * from public.entry_reflections')).rows.length,0);
+    await db.query(`insert into public.entries(owner_user_id,entry_type,body,source,source_key) values($1,'symbol','Independent owner',$2,'pdu:reading-one')`,['00000000-0000-4000-8000-000000000002',JSON.stringify(source)]);
+    assert.equal((await db.query('select * from public.entries')).rows.length,1,'the same source is allowed in a different independent account');
     await assert.rejects(db.exec(`insert into public.entry_reflections(id,entry_id,kind,body) values(gen_random_uuid(),'10000000-0000-4000-8000-000000000001','learning','Intrusion')`),/row-level security/);
     assert.equal((await db.query(`delete from public.entries where id='10000000-0000-4000-8000-000000000001' returning id`)).rows.length,0);
     await db.exec(`reset role; set role anon;`);

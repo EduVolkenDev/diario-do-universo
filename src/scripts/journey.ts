@@ -1,5 +1,6 @@
 import { entryLabels, type Entry } from '../lib/entries';
 import { dailyRevisit, revisitCandidates, type Revisit } from '../lib/revisit';
+import { parsePduReading } from '../lib/pdu-transfer';
 import { friendlyDataError, journeyOf, normalizeSearch, reflectionLabels, statusLabels, validateReflection, type Reflection, type ReflectionKind } from '../lib/journey';
 
 const $ = <T extends HTMLElement = HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
@@ -44,6 +45,11 @@ export function createJourneyView(callbacks: {
   const reflectionsFor = (id: string) => reflectionIndex.get(id) ?? [];
   const journey = (id: string) => journeyIndex.get(id) ?? journeyOf([]);
   const badge = (id: string) => state.reflectionsError ? '<span class="journey-status">Histórico indisponível</span>' : `<span class="journey-status status-${journey(id).status}">${statusLabels[journey(id).status]}</span>`;
+  const sourceDetails = (entry: Entry) => {
+    const source = parsePduReading(entry.source);
+    if (!source) return '';
+    return `<section class="pdu-reading-source" aria-label="Origem da leitura"><span class="label">Guardada do Palavras do Universo</span><p>${escape(source.spreadLabel)}</p>${source.question ? `<p>${escape(source.question)}</p>` : ''}<ul class="pdu-reading-cards">${source.cards.map(card => `<li>${escape(card.position)} · ${escape(card.name)}${card.reversed ? ' (reversa)' : ''}</li>`).join('')}</ul></section>`;
+  };
 
   function render() {
     renderRevisit();
@@ -63,7 +69,7 @@ export function createJourneyView(callbacks: {
     else if (!state.ownerId) collection.innerHTML = '<div class="empty"><span aria-hidden="true">✧</span><h3>Seu espaço começa aqui.</h3><p>Entre para guardar seus sinais e revisitar o que eles despertaram em você.</p><a class="text-link" href="#composer">Escrever meu primeiro sinal ↗</a></div>';
     else if (!visible.length) collection.innerHTML = state.entries.length ? '<div class="empty"><p>Nenhum sinal neste recorte.</p><button type="button" class="text-link" data-clear-search>Limpar busca e filtro</button></div>' : '<div class="empty"><span aria-hidden="true">✧</span><h3>Algo chamou sua atenção?</h3><p>Guarde o primeiro sinal. O significado pode chegar depois.</p><a class="text-link" href="#composer">Começar um registro ↗</a></div>';
     else collection.innerHTML = visible.map(entry => `<article id="entry-${escape(entry.id)}" class="entry">
-      <div class="entry-heading"><small>${escape(entryLabels[entry.entry_type])}</small>${badge(entry.id)}</div>
+      <div class="entry-heading"><small>${entry.source ? 'Leitura · PDU' : escape(entryLabels[entry.entry_type])}</small>${badge(entry.id)}</div>
       <h3><button class="entry-title" data-open-entry="${escape(entry.id)}">${escape(entry.title || 'Um sinal para lembrar')}</button></h3>
       <time datetime="${escape(entry.occurred_at)}">${date(entry.occurred_at)}</time>
       <p class="entry-excerpt">${escape(entry.body)}</p>
@@ -107,7 +113,7 @@ export function createJourneyView(callbacks: {
     if (!entry) { dialog.close(); activeId = null; return; }
     $('#journey-title').textContent = entry.title || 'Um sinal para lembrar';
     const { timeline, status } = journey(entry.id);
-    $('#journey-content').innerHTML = `${badge(entry.id)}<ol class="journey-timeline"><li class="timeline-original"><span class="label">O primeiro sinal · ${escape(entryLabels[entry.entry_type])}</span><time datetime="${escape(entry.occurred_at)}">${date(entry.occurred_at)}</time><p>${escape(entry.body)}</p></li>${timeline.map(r => `<li class="timeline-${r.kind}"><span class="label">${reflectionLabels[r.kind]}</span><time datetime="${escape(r.created_at)}">${date(r.created_at)}</time><p>${escape(r.body)}</p></li>`).join('')}</ol>${state.reflectionsError ? '<p class="data-warning">O histórico está indisponível. Recarregue a coleção antes de adicionar uma evolução.</p>' : ''}`;
+    $('#journey-content').innerHTML = `${badge(entry.id)}${sourceDetails(entry)}<ol class="journey-timeline"><li class="timeline-original"><span class="label">O primeiro sinal · ${escape(entryLabels[entry.entry_type])}</span><time datetime="${escape(entry.occurred_at)}">${date(entry.occurred_at)}</time><p>${escape(entry.body)}</p></li>${timeline.map(r => `<li class="timeline-${r.kind}"><span class="label">${reflectionLabels[r.kind]}</span><time datetime="${escape(r.created_at)}">${date(r.created_at)}</time><p>${escape(r.body)}</p></li>`).join('')}</ol>${state.reflectionsError ? '<p class="data-warning">O histórico está indisponível. Recarregue a coleção antes de adicionar uma evolução.</p>' : ''}`;
     form.hidden = !!state.reflectionsError || state.loading;
     const reopen = kind.querySelector<HTMLOptionElement>('[value="reopened"]')!;
     reopen.disabled = status === 'open';

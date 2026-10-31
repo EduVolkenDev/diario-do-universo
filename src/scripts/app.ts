@@ -5,6 +5,7 @@ import { friendlyDataError, type Reflection } from '../lib/journey';
 import { createJourneyView } from './journey';
 import { setupAccountAccess } from './account-access';
 import { accountError } from '../lib/account-access';
+import { setupPduImport } from './pdu-import';
 
 const title = document.querySelector<HTMLInputElement>('#title');
 const body = document.querySelector<HTMLTextAreaElement>('#body');
@@ -60,6 +61,10 @@ const journeyView = createJourneyView({
   remove: removeEntry,
   retry: () => void refreshEntries(),
 });
+const pduImport = setupPduImport({client: supabase, openAuth, saved: entry => {
+  entries = [entry, ...entries.filter(item => item.id !== entry.id)].sort((a,b) => b.occurred_at.localeCompare(a.occurred_at));
+  render();
+}});
 
 function localDateTimeValue(date = new Date()) {
   const offset = date.getTimezoneOffset() * 60000;
@@ -273,7 +278,7 @@ async function signInWithProvider(provider: 'google' | 'facebook' | 'apple') {
   await authAction(button, async () => {
     showNotice(`Abrindo ${providerLabel}…`, authNotice);
     const { error } = await supabase!.auth.signInWithOAuth({
-      provider, options: { redirectTo: `${window.location.origin}${window.location.pathname}` },
+      provider, options: { redirectTo: `${window.location.origin}/` },
     });
     if (error) showNotice(error.message, authNotice);
   });
@@ -446,6 +451,7 @@ if (!supabase) {
       }
     } else setSignedOut();
     accountAccess.handleSession(_event, session?.user.id ?? null);
+    pduImport.handleOwner(session?.user.id ?? null);
   });
 }
 

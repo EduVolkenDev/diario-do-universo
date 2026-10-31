@@ -17,6 +17,18 @@ p, h2, h3, button { overflow-wrap: anywhere; }
 .diary-nav a:hover { color: var(--gold); background: #f4d58d0a; }
 .field-label { display: block; margin: 18px 0 8px; color: #e2d9e9; font-size: .8rem; }
 .field-label span, .field-hint { color: var(--ink-muted); }
+.pdu-import { margin: 28px 0; padding: clamp(22px, 5vw, 36px); }
+.pdu-pending { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-top: 24px; padding: 16px 20px; border: 1px solid #f4d58d44; border-radius: 16px; background: #f4d58d0a; }
+.pdu-pending p { margin: 0; color: #e8ddca; font-size: .85rem; line-height: 1.6; }
+.pdu-import h1 { color: #f4e6ca; font: 500 clamp(2rem, 6vw, 3rem)/1.15 Georgia, serif; }
+.pdu-import h2 { font: 500 1.5rem/1.35 Georgia, serif; }
+.pdu-import textarea { width: 100%; padding: 14px; border: 1px solid #ffffff30; border-radius: 14px; background: #11101d; color: #eee; font-size: 16px; line-height: 1.6; resize: vertical; }
+.pdu-import details { padding: 18px 0; border-block: 1px solid #f4d58d24; }
+.pdu-import summary { cursor: pointer; min-height: 44px; color: var(--mint); }
+.pdu-import details p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; color: #dcd0e5; }
+.pdu-reading-cards { display: grid; gap: 8px; list-style: none; padding: 0; }
+.pdu-reading-cards li { padding: 12px 14px; border: 1px solid #f4d58d30; border-radius: 12px; color: #f4e6ca; overflow-wrap: anywhere; font-size: .85rem; line-height: 1.5; }
+.pdu-reading-source { margin-top: 22px; padding: 18px; border: 1px solid #f4d58d30; border-radius: 16px; background: #f4d58d06; }
 .revisit { position: relative; padding: clamp(22px, 5vw, 36px); margin: 0 0 24px; border: 1px solid #f4d58d42; border-radius: 26px; background: radial-gradient(ellipse at 100% 0, #9481c51a, transparent 65%), linear-gradient(140deg, #302433cf, #181421f5); }
 .revisit-heading { display: flex; justify-content: space-between; gap: 18px; align-items: center; }
 .revisit-heading > span:last-child { color: var(--gold); font-size: 1.8rem; }

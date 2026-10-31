@@ -5,7 +5,7 @@ import {JSDOM} from 'jsdom';
 import {signupOutcome} from '../src/lib/account-access.ts';
 import {setupAccountAccess} from '../src/scripts/account-access.ts';
 
-const source=readFileSync(new URL('../src/pages/index.astro',import.meta.url),'utf8');
+const source=readFileSync(new URL('../src/components/DiaryPage.astro',import.meta.url),'utf8');
 const html=source.slice(source.indexOf('<!doctype'));
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 

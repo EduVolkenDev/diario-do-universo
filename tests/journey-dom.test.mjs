@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
 import { createJourneyView } from '../src/scripts/journey.ts';
 
-const source = readFileSync(new URL('../src/pages/index.astro', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../src/components/DiaryPage.astro', import.meta.url), 'utf8');
 const html = source.slice(source.indexOf('<!doctype'));
 const entry = {id:'entry-1',title:'Um sonho <img src=x onerror=alert(1)>',body:'Sonhei com uma árvore.',entry_type:'dream',occurred_at:'2026-10-25T12:00:00Z'};
 const initial = {ownerId:'owner',entries:[entry],reflections:[],loading:false,entriesError:'',reflectionsError:''};

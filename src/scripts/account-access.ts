@@ -60,7 +60,7 @@ export function setupAccountAccess(client: SupabaseClient | null) {
     try {
       const { data, error } = await client.auth.signUp({
         email: email.value.trim(), password: password.value,
-        options: { emailRedirectTo: `${window.location.origin}${window.location.pathname}` },
+        options: { emailRedirectTo: `${window.location.origin}/` },
       });
       switch (signupOutcome(data, error)) {
         case 'existing': showExisting(); break;
@@ -89,7 +89,7 @@ export function setupAccountAccess(client: SupabaseClient | null) {
     notice.textContent = 'Solicitando o email de recuperação…';
     try {
       const { error } = await client.auth.resetPasswordForEmail(address, {
-        redirectTo: `${window.location.origin}${window.location.pathname}`,
+        redirectTo: `${window.location.origin}/`,
       });
       if (error) { notice.textContent = accountError(error); return; }
       notice.textContent = 'Se houver uma conta com este email, você receberá um link para definir uma nova senha. Confira também spam e promoções.';

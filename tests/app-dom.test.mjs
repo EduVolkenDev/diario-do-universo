@@ -5,7 +5,7 @@ import {JSDOM} from 'jsdom';
 
 test('app integration: signed-out draft, save, garden, reflection, reload, failure and sign-out race', async () => {
   process.env.DIARY_TEST_AUTH='mock';
-  const source=readFileSync(new URL('../src/pages/index.astro',import.meta.url),'utf8');
+  const source=readFileSync(new URL('../src/components/DiaryPage.astro',import.meta.url),'utf8');
   const dom=new JSDOM(source.slice(source.indexOf('<!doctype')),{url:'http://localhost/'});
   globalThis.window=dom.window;
   globalThis.document=dom.window.document;

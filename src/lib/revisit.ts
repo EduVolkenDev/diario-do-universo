@@ -1,5 +1,6 @@
 import type { Entry } from './entries';
 import { journeyOf, type Reflection, type JourneyStatus } from './journey';
+import { parsePduReading } from './pdu-transfer';
 
 const day = 86_400_000;
 export type Revisit = { entry: Entry; status: JourneyStatus; daysSince: number; prompt: string };
@@ -21,7 +22,7 @@ export function revisitCandidates(entries: readonly Entry[], reflections: readon
     if (timestamps.some(value => !Number.isFinite(value))) continue;
     const daysSince = Math.floor((now.getTime() - Math.max(...timestamps)) / day);
     if (daysSince < 7) continue;
-    const prompt = status === 'learned' ? 'Onde esse aprendizado encontrou lugar na sua vida?' : status === 'concluded' ? 'Essa conclusão ainda faz sentido para você hoje?' : history.length ? 'O que mudou desde a sua última reflexão?' : 'O que você percebe hoje que não percebia naquele momento?';
+    const prompt = status === 'learned' ? 'Onde esse aprendizado encontrou lugar na sua vida?' : status === 'concluded' ? 'Essa conclusão ainda faz sentido para você hoje?' : history.length ? 'O que mudou desde a sua última reflexão?' : parsePduReading(entry.source) ? 'Como essa leitura conversou com o que você viveu desde então?' : 'O que você percebe hoje que não percebia naquele momento?';
     candidates.push({ entry, status, daysSince, prompt });
   }
   const order = (status: JourneyStatus) => status === 'open' ? 0 : 1;

@@ -1,4 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { PduReading } from './pdu-transfer';
+
+export const entryFields = 'id, entry_type, title, body, occurred_at, occurred_timezone, occurred_precision, created_at, updated_at, source';
 
 export const entryLabels = {
   symbol: 'Símbolo',
@@ -21,6 +24,7 @@ export type Entry = {
   occurred_precision: 'exact' | 'approximate' | 'unknown';
   created_at: string;
   updated_at: string;
+  source?: PduReading | null;
 };
 
 export type EntryDraft = {
@@ -38,7 +42,7 @@ export async function listEntries(client: SupabaseClient): Promise<Entry[]> {
   const entries: Entry[] = [];
   for (let offset = 0; ; offset += 500) {
     const { data, error } = await client.from('entries')
-      .select('id, entry_type, title, body, occurred_at, occurred_timezone, occurred_precision, created_at, updated_at')
+      .select(entryFields)
       .order('occurred_at', { ascending: false }).order('id').range(offset, offset + 499);
     if (error) throw error;
     entries.push(...(data ?? []) as Entry[]);
@@ -50,12 +54,12 @@ export async function createEntry(client: SupabaseClient, draft: EntryDraft): Pr
   const { data, error } = await client
     .from('entries')
     .insert(draft)
-    .select('id, entry_type, title, body, occurred_at, occurred_timezone, occurred_precision, created_at, updated_at')
+    .select(entryFields)
     .single();
 
   if (error?.code === '23505' && draft.id) {
     const result = await client.from('entries')
-      .select('id, entry_type, title, body, occurred_at, occurred_timezone, occurred_precision, created_at, updated_at')
+      .select(entryFields)
       .eq('id', draft.id).single();
     if (!result.error && result.data.body === draft.body && result.data.title === draft.title && result.data.entry_type === draft.entry_type) return result.data as Entry;
   }
