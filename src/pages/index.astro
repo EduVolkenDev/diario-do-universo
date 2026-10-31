@@ -42,6 +42,7 @@ const entryTypes = [
 
       <nav class="diary-nav" aria-label="Caminhos do diário">
         <a href="#composer">Registrar <span aria-hidden="true">↗</span></a>
+        <a id="revisit-nav" href="#revisit" hidden>Revisita</a>
         <a href="#collection">Meus sinais</a>
         <a href="#cosmic-garden">Jardim Cósmico</a>
         <a href="#learnings">O que ficou</a>
@@ -61,8 +62,20 @@ const entryTypes = [
           <label for="auth-password">Senha</label>
           <input id="auth-password" type="password" autocomplete="current-password" minlength="6" required placeholder="Mínimo de 6 caracteres" />
           <div class="auth-actions"><button id="auth-submit" class="primary-button" type="submit">Entrar</button><button id="signup" class="secondary-button" type="button">Criar conta</button></div>
+          <div id="existing-account" class="existing-account" hidden><p>Este email já possui uma conta.</p><button id="existing-account-login" class="text-link" type="button">Entrar com minha senha ↑</button></div>
+          <button id="recover-password" class="text-link" type="button">Recuperar senha</button>
           <div class="auth-divider"><span>ou continue com</span></div>
           <div class="provider-actions"><button id="oauth-google" class="provider-button" type="button"><span aria-hidden="true">G</span> Continuar com Google</button><button id="oauth-facebook" class="provider-button" type="button"><span aria-hidden="true">f</span> Facebook</button><button id="oauth-apple" class="provider-button" type="button"><span aria-hidden="true">●</span> Apple</button><button id="passkey-signin" class="provider-button" type="button"><span aria-hidden="true">⌁</span> Chave de acesso</button></div>
+        </form>
+        <form id="password-recovery-form" hidden aria-labelledby="password-recovery-title">
+          <h3 id="password-recovery-title">Defina sua nova senha</h3>
+          <p class="field-hint">Escolha uma senha para voltar ao seu diário.</p>
+          <label for="new-password">Nova senha</label>
+          <input id="new-password" type="password" autocomplete="new-password" minlength="8" required placeholder="Pelo menos 8 caracteres" />
+          <label for="confirm-password">Repita a nova senha</label>
+          <input id="confirm-password" type="password" autocomplete="new-password" minlength="8" required />
+          <button id="password-recovery-save" class="primary-button" type="submit">Salvar nova senha</button>
+          <p id="password-recovery-notice" class="auth-notice" role="status"></p>
         </form>
         <div class="signed-in" hidden><p id="signed-in-label"></p><div class="signed-in-actions"><button id="register-passkey" class="secondary-button" type="button">Adicionar chave de acesso</button><button id="signout" class="secondary-button" type="button">Sair</button></div></div>
         <p id="auth-notice" class="auth-notice" role="status"></p>
@@ -80,6 +93,12 @@ const entryTypes = [
             <button type="button" data-quick-type="word" data-quick-title="Uma palavra que ficou">Aa <span>uma palavra</span></button>
           </div>
         </div>
+      </section>
+
+      <section id="revisit" class="revisit" hidden aria-labelledby="revisit-title">
+        <div class="revisit-heading"><span class="label">um encontro com o que você viveu</span><span aria-hidden="true">↺</span></div>
+        <h2 id="revisit-title" tabindex="-1">Um sinal, um novo olhar.</h2>
+        <div id="revisit-content"></div>
       </section>
 
       <section id="composer" class="card composer" aria-labelledby="composer-title">
@@ -164,6 +183,7 @@ const entryTypes = [
     <dialog id="journey-dialog" class="journey-dialog" aria-labelledby="journey-title" aria-describedby="journey-subtitle">
       <header class="journey-heading"><div><span class="label">o caminho deste sinal</span><h2 id="journey-title"></h2></div><button id="journey-close" class="dialog-close" type="button" aria-label="Fechar histórico" autofocus>×</button></header>
       <p id="journey-subtitle" class="field-hint">Seu registro original e o que mudou desde então.</p>
+      <div id="revisit-question" class="revisit-question" hidden><span class="label">leve esta pergunta com você</span><p id="revisit-prompt"></p><button id="revisit-write" class="text-link" type="button">Registrar meu novo olhar ↓</button></div>
       <div id="journey-content"></div>
       <form id="reflection-form" class="reflection-form">
         <h3>O que mudou para você?</h3>

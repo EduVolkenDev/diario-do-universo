@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase-browser';
 import { addReflection, listReflections } from '../lib/reflections';
 import { friendlyDataError, type Reflection } from '../lib/journey';
 import { createJourneyView } from './journey';
+import { setupAccountAccess } from './account-access';
+import { accountError } from '../lib/account-access';
 
 const title = document.querySelector<HTMLInputElement>('#title');
 const body = document.querySelector<HTMLTextAreaElement>('#body');
@@ -15,7 +17,6 @@ const authForm = document.querySelector<HTMLFormElement>('#auth-form');
 const authEmail = document.querySelector<HTMLInputElement>('#auth-email');
 const authPassword = document.querySelector<HTMLInputElement>('#auth-password');
 const authSubmit = document.querySelector<HTMLButtonElement>('#auth-submit');
-const signup = document.querySelector<HTMLButtonElement>('#signup');
 const oauthGoogle = document.querySelector<HTMLButtonElement>('#oauth-google');
 const oauthFacebook = document.querySelector<HTMLButtonElement>('#oauth-facebook');
 const oauthApple = document.querySelector<HTMLButtonElement>('#oauth-apple');
@@ -46,6 +47,7 @@ let reflectionsError = '';
 let requestVersion = 0;
 let savingEntry = false;
 let entryRetry: { signature: string; id: string; occurredAt: string } | null = null;
+const accountAccess = setupAccountAccess(supabase);
 const journeyView = createJourneyView({
   save: draft => {
     if (!supabase || !ownerId) throw new Error('Entre para guardar.');
@@ -402,21 +404,8 @@ authForm?.addEventListener('submit', async (event) => {
   await authAction(authSubmit, async () => {
     showNotice('Entrando…', authNotice);
     const { error } = await supabase!.auth.signInWithPassword({ email: authEmail.value.trim(), password: authPassword.value });
-    if (error) showNotice(error.message, authNotice);
+    if (error) showNotice(accountError(error), authNotice);
     else { authPassword.value = ''; showNotice('Você voltou para o seu diário.', authNotice); }
-  });
-});
-
-signup?.addEventListener('click', async () => {
-  if (!authForm?.reportValidity()) return;
-  if (!supabase || !authEmail?.value || !authPassword?.value) {
-    showNotice('Preencha email e senha para criar sua conta.', authNotice);
-    return;
-  }
-  await authAction(signup, async () => {
-    const { error, data } = await supabase!.auth.signUp({ email: authEmail.value.trim(), password: authPassword.value });
-    showNotice(error ? error.message : data.session ? 'Conta criada. Seu diário está pronto.' : 'Conta criada. Verifique seu email para confirmar o acesso.', authNotice);
-    if (!error) authPassword.value = '';
   });
 });
 
@@ -456,6 +445,7 @@ if (!supabase) {
         window.setTimeout(() => void refreshEntries(), 0);
       }
     } else setSignedOut();
+    accountAccess.handleSession(_event, session?.user.id ?? null);
   });
 }
 

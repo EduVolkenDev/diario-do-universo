@@ -1,5 +1,19 @@
 # Auth premium — Diário do Universo
 
+## Cadastro repetido e recuperação de senha — 30/10/2026
+
+O cliente distingue cadastro novo, sessão imediata e resposta de conta existente. Códigos `user_already_exists`/`email_exists` e o retorno sem sessão com `identities: []` são tratados como conta já existente, sem anunciar criação ou envio de confirmação. O botão Criar conta fica desativado para aquele endereço até a edição do email. As opções Entrar e Recuperar senha continuam disponíveis. Não há endpoint público de consulta à lista de usuários, credencial administrativa no cliente nem alteração das configurações de confirmação do projeto.
+
+Recuperar senha valida apenas o email e chama `resetPasswordForEmail`, com retorno para a origem e o caminho atuais da home. O evento `PASSWORD_RECOVERY` abre um formulário próprio; somente após verificar a sessão e a igualdade das duas senhas, o cliente envia `updateUser({password})`. Uma sessão comum não abre esse formulário. A senha só é anunciada como atualizada após confirmação do servidor. As entradas são limpas ao sair ou trocar de conta.
+
+O pedido de recuperação tem intervalo local de 60 segundos após resposta de sucesso, além dos limites do servidor. Mensagens de envio preservam o comportamento do provedor para endereços desconhecidos. Erros de limite, email não autorizado, link expirado, senha fraca e senha repetida recebem orientação em português. A tela pode solicitar novo link quando o retorno informa `otp_expired`.
+
+Validação local: testes de cadastro duplicado e novo, bloqueio de repetição, pedido sem senha, redirecionamento, confirmação de senha, sessão expirada, falhas e limpeza. Nenhum email real foi disparado e nenhuma senha de conta real foi alterada nos testes. Entrega de email, SMTP e Redirect URLs precisam estar configurados no projeto para o fluxo remoto funcionar; a interface não configura o provedor de envio. O template local de recuperação já usa `{{ .ConfirmationURL }}`.
+
+Referências oficiais: [signUp](https://supabase.com/docs/reference/javascript/auth-signup), [recuperação](https://supabase.com/docs/reference/javascript/auth-resetpasswordforemail), [updateUser](https://supabase.com/docs/reference/javascript/auth-updateuser).
+
+Na revisão de publicação de 30–31/10, uma única solicitação de recuperação para a conta do proprietário foi aceita pelo endpoint real do Supabase (`HTTP 200`), com retorno solicitado para o domínio oficial. Isso comprova a aceitação da solicitação, não a entrega na caixa de entrada nem a conclusão da alteração de senha. Nenhuma senha real foi alterada. O painel desconectado foi conferido no navegador em 390/768/1440px sem overflow horizontal.
+
 ## Estrutura definida
 
 O Diário faz parte do **Volynx Universe Share**, na conta Supabase `eduardo@eduardovolken.com`, usando o projeto:

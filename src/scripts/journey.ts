@@ -1,4 +1,5 @@
 import { entryLabels, type Entry } from '../lib/entries';
+import { dailyRevisit, revisitCandidates, type Revisit } from '../lib/revisit';
 import { friendlyDataError, journeyOf, normalizeSearch, reflectionLabels, statusLabels, validateReflection, type Reflection, type ReflectionKind } from '../lib/journey';
 
 const $ = <T extends HTMLElement = HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
@@ -25,6 +26,12 @@ export function createJourneyView(callbacks: {
   let saving = false;
   let epoch = 0;
   let retryDraft: { signature: string; id: string } | null = null;
+  let revisitId: string | null = null;
+  let revisitDay = '';
+  let currentRevisit: Revisit | undefined;
+  let completedRevisit: { title: string; body: string; kind: ReflectionKind; entryId: string } | null = null;
+  let activeRevisit = false;
+  let returnFocus: HTMLElement | null = null;
   const dialog = $<HTMLDialogElement>('#journey-dialog');
   const form = $<HTMLFormElement>('#reflection-form');
   const body = $<HTMLTextAreaElement>('#reflection-body');
@@ -39,6 +46,7 @@ export function createJourneyView(callbacks: {
   const badge = (id: string) => state.reflectionsError ? '<span class="journey-status">Histórico indisponível</span>' : `<span class="journey-status status-${journey(id).status}">${statusLabels[journey(id).status]}</span>`;
 
   function render() {
+    renderRevisit();
     $('#count').textContent = String(state.entries.length);
     const collection = $('#entries');
     collection.setAttribute('aria-busy', String(state.loading));
@@ -69,6 +77,31 @@ export function createJourneyView(callbacks: {
     if (activeId && dialog.open) renderTimeline();
   }
 
+  function renderRevisit() {
+    const section = $('#revisit');
+    const content = $('#revisit-content');
+    section.hidden = !state.ownerId || state.loading || !!state.entriesError || !!state.reflectionsError;
+    $('#revisit-nav').hidden = section.hidden;
+    if (section.hidden) { content.replaceChildren(); currentRevisit = undefined; return; }
+    if (completedRevisit) {
+      const completed = completedRevisit;
+      content.innerHTML = `<p class="revisit-intro">Você voltou a uma experiência e acrescentou o que percebe agora.</p><article class="revisit-memory"><span class="label">Momento guardado · ${reflectionLabels[completed.kind]}</span><h3>${escape(completed.title)}</h3><blockquote>${escape(completed.body)}</blockquote></article><p class="revisit-invitation">Seu caminho ganhou mais uma perspectiva.</p><div class="revisit-actions"><button class="text-link" type="button" data-open-entry="${escape(completed.entryId)}">Ver meu caminho ↗</button><button class="text-link" type="button" data-revisit-done>Voltar aos convites</button><a class="text-link" href="#composer">Guardar algo de hoje ↗</a></div>`;
+      return;
+    }
+    const now = new Date();
+    const localDay = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+    const candidates = revisitCandidates(state.entries, state.reflections, now);
+    if (revisitDay !== localDay) { revisitId = null; revisitDay = localDay; }
+    currentRevisit = candidates.find(item => item.entry.id === revisitId) ?? dailyRevisit(candidates, localDay);
+    revisitId = currentRevisit?.entry.id ?? null;
+    if (!currentRevisit) {
+      content.innerHTML = `<p class="revisit-intro">${state.entries.length ? 'Seus sinais ainda estão recentes. Dê espaço ao que viveu: depois de sete dias sem uma nova evolução, um deles pode voltar aqui para você olhar de novo.' : 'O primeiro passo é guardar algo que chamou sua atenção. Com o tempo, este espaço vai convidar você a reencontrar seus próprios sinais.'}</p><a class="text-link" href="#composer">${state.entries.length ? 'Guardar o que acontece hoje' : 'Guardar meu primeiro sinal'} ↗</a>`;
+      return;
+    }
+    const { entry, daysSince, prompt } = currentRevisit;
+    content.innerHTML = `<p class="revisit-intro">Uma lembrança do seu diário, vista de onde você está agora.</p><article class="revisit-memory"><div class="entry-heading"><span class="label">${escape(entryLabels[entry.entry_type])}</span>${badge(entry.id)}</div><h3>${escape(entry.title || 'Um sinal para lembrar')}</h3><time datetime="${escape(entry.occurred_at)}">Registrado para ${date(entry.occurred_at)}</time><blockquote>${escape(entry.body)}</blockquote><p class="field-hint">${daysSince} dias desde ${reflectionsFor(entry.id).length ? 'a última evolução' : 'este registro'}.</p></article><p class="revisit-invitation">${escape(prompt)}</p><div class="revisit-actions"><button class="primary-button" type="button" data-revisit-entry="${escape(entry.id)}">Revisitar este sinal <span aria-hidden="true">↗</span></button>${candidates.length > 1 ? '<button class="text-link" type="button" data-next-revisit>Ver outro sinal</button>' : ''}</div><p class="field-hint">Você pode apenas reler. Não precisa chegar a uma resposta hoje.</p>`;
+  }
+
   function renderTimeline() {
     const entry = state.entries.find(e => e.id === activeId);
     if (!entry) { dialog.close(); activeId = null; return; }
@@ -81,13 +114,17 @@ export function createJourneyView(callbacks: {
     if (status === 'open' && kind.value === 'reopened') kind.value = 'evolution';
   }
 
-  function open(id: string) {
+  function open(id: string, prompt?: string) {
     if (!state.entries.some(entry => entry.id === id)) return;
     if (dialog.open && !close()) return;
     activeId = id;
+    activeRevisit = !!prompt;
+    returnFocus = document.activeElement instanceof window.HTMLElement ? document.activeElement : null;
     form.reset();
     retryDraft = null;
     $('#reflection-notice').textContent = '';
+    $('#revisit-question').hidden = !prompt;
+    $('#revisit-prompt').textContent = prompt ?? '';
     updateForm();
     renderTimeline();
     dialog.showModal();
@@ -99,6 +136,8 @@ export function createJourneyView(callbacks: {
     dialog.close();
     activeId = null;
     form.reset();
+    if (returnFocus?.isConnected) returnFocus.focus();
+    else $('#revisit-content [data-revisit-entry]')?.focus();
     return true;
   }
 
@@ -127,6 +166,9 @@ export function createJourneyView(callbacks: {
     try {
       const reflection = await callbacks.save({ id: retryDraft.id, entry_id: activeId, kind: kind.value as ReflectionKind, body: body.value.trim() });
       if (epoch !== capturedEpoch) return;
+      if (activeRevisit) {
+        completedRevisit = { title: state.entries.find(entry => entry.id === reflection.entry_id)?.title || 'Um sinal para lembrar', body: reflection.body, kind: reflection.kind, entryId: reflection.entry_id };
+      }
       form.reset();
       retryDraft = null;
       callbacks.saved(reflection);
@@ -140,16 +182,33 @@ export function createJourneyView(callbacks: {
   kind.addEventListener('change', updateForm);
   body.addEventListener('input', updateForm);
   $('#journey-close').addEventListener('click', close);
+  $('#revisit-write').addEventListener('click', () => body.focus());
   dialog.addEventListener('cancel', event => { event.preventDefault(); close(); });
   window.addEventListener('beforeunload', event => {
     if (dialog.open && (body.value.trim() || saving)) event.preventDefault();
   });
   search.addEventListener('input', render);
   filter.addEventListener('change', render);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && !dialog.open) renderRevisit();
+  });
   $('#entries-retry').addEventListener('click', callbacks.retry);
   document.addEventListener('click', event => {
     const target = (event.target as Element).closest<HTMLButtonElement>('button');
     if (target?.dataset.openEntry) open(target.dataset.openEntry);
+    if (target?.dataset.revisitEntry && currentRevisit?.entry.id === target.dataset.revisitEntry) open(target.dataset.revisitEntry, currentRevisit.prompt);
+    if (target?.hasAttribute('data-revisit-done')) {
+      completedRevisit = null;
+      renderRevisit();
+      ($('#revisit-content [data-revisit-entry]') ?? $('#revisit-title')).focus();
+    }
+    if (target?.hasAttribute('data-next-revisit')) {
+      const candidates = revisitCandidates(state.entries, state.reflections);
+      const index = candidates.findIndex(item => item.entry.id === revisitId);
+      revisitId = candidates[(index + 1) % candidates.length]?.entry.id ?? null;
+      renderRevisit();
+      $('#revisit-content [data-revisit-entry]')?.focus();
+    }
     if (target?.dataset.deleteEntry) {
       target.disabled = true;
       void callbacks.remove(target.dataset.deleteEntry).finally(() => { target.disabled = false; });
@@ -166,6 +225,13 @@ export function createJourneyView(callbacks: {
         activeId = null;
         form.reset();
         retryDraft = null;
+        revisitId = null;
+        completedRevisit = null;
+        activeRevisit = false;
+        revisitDay = '';
+        returnFocus = null;
+        $('#revisit-question').hidden = true;
+        $('#revisit-prompt').textContent = '';
         search.value = '';
         filter.value = 'all';
         $('#journey-content').replaceChildren();

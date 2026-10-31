@@ -10,6 +10,53 @@ const entry = {id:'entry-1',title:'Um sonho <img src=x onerror=alert(1)>',body:'
 const initial = {ownerId:'owner',entries:[entry],reflections:[],loading:false,entriesError:'',reflectionsError:''};
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
+test('revisit opens a contextual history, saves a reflection and clears private content on sign-out', async () => {
+  const dom = new JSDOM(html, {url:'http://localhost/'});
+  globalThis.document=dom.window.document;
+  globalThis.window=dom.window;
+  dom.window.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
+  dom.window.HTMLDialogElement.prototype.close=function(){this.open=false;};
+  const $=selector=>document.querySelector(selector);
+  const old={...entry,created_at:'2020-01-01T12:00:00Z',updated_at:'2020-01-01T12:00:00Z'};
+  let state={...initial,entries:[old,{...old,id:'another',title:'Outro sinal'}],reflections:[]};
+  let saved;
+  const view=createJourneyView({
+    save:async draft=>({...draft,position:1,created_at:new Date().toISOString()}),
+    saved:reflection=>{saved=reflection;state={...state,reflections:[reflection]};view.update(state);},
+    remove:async()=>{},retry:()=>{},
+  });
+  view.update(state);
+  assert.equal($('#revisit').hidden,false);
+  assert.equal($('#revisit-content img'),null);
+  const selected=$('[data-revisit-entry]').dataset.revisitEntry;
+  $('[data-next-revisit]').click();
+  assert.notEqual($('[data-revisit-entry]').dataset.revisitEntry,selected);
+  const chosen=$('[data-revisit-entry]').dataset.revisitEntry;
+  $('[data-revisit-entry]').click();
+  assert.equal($('#journey-dialog').open,true);
+  assert.equal($('#revisit-question').hidden,false);
+  assert.match($('#revisit-prompt').textContent,/percebe hoje/);
+  $('#revisit-write').click();
+  assert.equal(document.activeElement.id,'reflection-body');
+  $('#reflection-body').value='Hoje compreendo melhor.';
+  $('#reflection-form').dispatchEvent(new window.Event('submit',{cancelable:true}));
+  await tick();
+  assert.equal(saved.entry_id,chosen);
+  assert.equal(saved.kind,'evolution');
+  assert.match($('#revisit-content').textContent,/Hoje compreendo melhor/,'acknowledges the saved perspective before another invitation');
+  assert.equal($('[data-revisit-entry]'),null);
+  $('[data-revisit-done]').click();
+  assert.notEqual($('[data-revisit-entry]').dataset.revisitEntry,chosen,'recent reflection rests from invitations');
+  $('#journey-close').click();
+  view.open(selected);
+  assert.equal($('#revisit-question').hidden,true,'ordinary history does not retain a previous invitation');
+  view.update({...initial,ownerId:null,entries:[]});
+  assert.equal($('#revisit').hidden,true);
+  assert.equal($('#revisit-content').textContent,'');
+  assert.equal($('#revisit-prompt').textContent,'');
+  dom.window.close();
+});
+
 test('DOM journey: timeline, failures, retry ID, learning, reopen, search and account clearing', async () => {
   const dom = new JSDOM(html, {url:'http://localhost/'});
   globalThis.document = dom.window.document;
