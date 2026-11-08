@@ -90,8 +90,8 @@ export function setupAccountAccess(client: SupabaseClient | null) {
     try {
       const { error } = await client.auth.resetPasswordForEmail(address, {
         redirectTo: import.meta.env.DEV
-          ? `${window.location.origin}/`
-          : 'https://diario.palavrasdouniverso.com/',
+          ? `${window.location.origin}/recuperar-senha/`
+          : 'https://diario.palavrasdouniverso.com/recuperar-senha/',
       });
       if (error) { notice.textContent = accountError(error); return; }
       notice.textContent = 'Se houver uma conta com este email, você receberá um link para definir uma nova senha. Confira também spam e promoções.';
